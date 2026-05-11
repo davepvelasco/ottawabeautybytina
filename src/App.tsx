@@ -137,12 +137,56 @@ export default function App() {
         formData.append(name, typeof value === 'object' && !(value instanceof File) ? JSON.stringify(value) : value.toString());
       };
 
+      const isLashes = services.some((s: string) => s === 'lash_ext' || s === 'lash_lift');
+      const isBrows = services.some((s: string) => s === 'brow');
+      const isWaxing = services.some((s: string) => s === 'waxing');
+
+      const names = services.map((id: string) => SERVICES.find(s => s.id === id)?.label).filter(Boolean);
+      let serviceNames = "";
+      if (names.length === 1) serviceNames = names[0];
+      else if (names.length === 2) serviceNames = `${names[0]} & ${names[1]}`;
+      else if (names.length > 2) serviceNames = `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+
+      const riskSegments = ["redness", "irritation"];
+      if (isWaxing) riskSegments.push("skin lifting", "minor injury");
+      if (isBrows) riskSegments.push("dryness");
+      riskSegments.push("itching", "swelling");
+      if (isBrows || isLashes) riskSegments.push("eye discomfort or watering");
+      riskSegments.push("allergic reactions or sensitivity");
+      if (isBrows || isLashes) riskSegments.push("uneven results or shorter retention");
+      let riskText = riskSegments.join(", ");
+      if (isLashes) riskText += ", and potential damage to natural lashes";
+      const riskStatement = `I understand that the selected service(s) involve the use of adhesives, chemical solutions, and tools near the eyes and skin, and may include risks such as ${riskText} if proper aftercare is not followed.`;
+
+      const medicalPhrases = Object.entries(medical)
+        .filter(([key, value]) => value === true && MEDICAL_QUESTIONS[key as keyof typeof MEDICAL_QUESTIONS])
+        .map(([key]) => `- ${MEDICAL_QUESTIONS[key as keyof typeof MEDICAL_QUESTIONS]}`);
+      if (medical.notes) medicalPhrases.push(`\nAdditional Notes: ${medical.notes}`);
+      
+      const ackPhrases: string[] = [];
+      if (acknowledgments.serviceAck1) ackPhrases.push(`I understand I am receiving ${serviceNames || "the selected services"}.`);
+      if (acknowledgments.serviceAck2) ackPhrases.push(`I understand results may vary depending on my skin type, hair condition, ${isLashes ? "natural lashes, " : ""}and aftercare.`);
+      if (acknowledgments.riskAck1) ackPhrases.push(riskStatement);
+      if (acknowledgments.riskAck2) ackPhrases.push(`I understand these risks are rare but possible.`);
+      if (acknowledgments.aftercareAck1) ackPhrases.push(`I understand that proper aftercare is required to maintain results and reduce risk of irritation.`);
+      if (acknowledgments.aftercareAck2) ackPhrases.push(`I agree to follow all instructions provided and understand Ottawa Beauty by Tina is not responsible for issues resulting from failure to follow instructions.`);
+      if (acknowledgments.disclosureAck1) ackPhrases.push(`I confirm that all information I have provided, including but not limited to medical conditions, allergies, sensitivities, eye conditions, and recent procedures, is accurate and complete.`);
+      if (acknowledgments.disclosureAck2) ackPhrases.push(`I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions.`);
+      if (isWaxing && acknowledgments.brazilianAck) ackPhrases.push(`I understand the nature of intimate waxing and give my full consent for this service.`);
+      if (acknowledgments.releaseLiability1) ackPhrases.push(`I voluntarily consent to ${isMinor ? "my child receiving" : "receive"} the selected service(s) from Ottawa Beauty by Tina.`);
+      if (acknowledgments.releaseLiability2) ackPhrases.push(`I release and hold harmless Ottawa Beauty by Tina, its owner, technicians, and staff from any and all liability, claims, demands, injuries, damages, or adverse reactions arising out of or in connection with the services provided, except to the extent caused by gross negligence or willful misconduct.`);
+      
+      const photoConsentTxt = consents.photoConsent 
+        ? `I consent to photos and videos ${isMinor ? "of my child" : ""} being taken and used for portfolio and marketing purposes, including social media, websites, and before-and-after promotional materials.`
+        : "I do NOT consent to photos and videos being taken.";
+      ackPhrases.push(photoConsentTxt);
+
       appendIfPresent("fullName", clientInfo.fullName);
       appendIfPresent("email", clientInfo.email);
       appendIfPresent("phone", clientInfo.phone);
       appendIfPresent("dob", clientInfo.dob);
       appendIfPresent("services", services.join(', '));
-      appendIfPresent("isMinor", isMinor ? "true" : ""); // If not minor, we can omit or send empty. User said no empty/null.
+      appendIfPresent("isMinor", isMinor ? "true" : "");
       
       if (isMinor) {
         appendIfPresent("parentFullName", parentInfo.fullName);
@@ -151,8 +195,11 @@ export default function App() {
         appendIfPresent("parentEmail", parentInfo.email);
       }
 
-      appendIfPresent("medicalInfo", medical);
-      appendIfPresent("acknowledgments", acknowledgments);
+      const medicalInfoStr = medicalPhrases.join('\n');
+      const acknowledgmentsStr = ackPhrases.join('\n\n');
+
+      appendIfPresent("medicalInfo", medicalInfoStr);
+      appendIfPresent("acknowledgments", acknowledgmentsStr);
 
       const clientSigFile = dataURLtoFile(signatures.client, 'client-signature.png');
       if (clientSigFile) {
