@@ -185,8 +185,8 @@ export default function App() {
       appendIfPresent("email", clientInfo.email);
       appendIfPresent("phone", clientInfo.phone);
       appendIfPresent("dob", clientInfo.dob);
-      appendIfPresent("services", services.join(', '));
-      appendIfPresent("isMinor", isMinor ? "true" : "");
+      appendIfPresent("services", names.join(', '));
+      appendIfPresent("isMinor", isMinor ? "Yes" : "No");
       
       if (isMinor) {
         appendIfPresent("parentFullName", parentInfo.fullName);
