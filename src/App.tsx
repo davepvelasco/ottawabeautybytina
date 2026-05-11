@@ -53,6 +53,7 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   // Form State
   const [services, setServices] = useState<ServiceType[]>([]);
@@ -123,6 +124,7 @@ export default function App() {
   const handleSubmit = async () => {
     if (services.length === 0) return;
     setIsSubmitting(true);
+    setSubmissionError(null);
     try {
       const formData = new FormData();
       formData.append("form-name", "client-intake");
@@ -164,6 +166,17 @@ export default function App() {
         }
       }
 
+      // Console log the form submission call for inspection
+      console.log('--- Submitting Netlify Form ---');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}: [File] ${value.name} (${value.size} bytes)`);
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+      console.log('------------------------------');
+
       const response = await fetch("/", {
         method: "POST",
         body: formData,
@@ -174,10 +187,8 @@ export default function App() {
       setSubmittedId('REC-' + Math.random().toString(36).substring(2, 9).toUpperCase());
     } catch (err) {
       console.error("Submission failed:", err);
-      // In development/preview environment (not Netlify), form submission will fail.
-      // We simulate success for the purpose of demonstrating the flow.
-      setSubmittedId('DEV-' + Math.random().toString(36).substring(2, 9).toUpperCase());
-      console.warn("Netlify Forms submission failed. This is expected outside of Netlify hosting.");
+      // We no longer simulate success in the catch block.
+      setSubmissionError("Submission failed. Since this preview is not hosted on Netlify, the Netlify Forms integration cannot receive the data. In a live Netlify environment, this would succeed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -306,6 +317,19 @@ export default function App() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">Section {step + 1} of {steps.length}</span>
                   <h3 className="font-serif text-2xl md:text-4xl font-light italic text-white">{steps[step]}</h3>
                 </div>
+
+                {submissionError && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-sm flex items-start gap-4"
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-200 font-light leading-relaxed">
+                      {submissionError}
+                    </p>
+                  </motion.div>
+                )}
 
                 <div className="min-h-[400px]">
                   {renderStep(
