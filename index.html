@@ -7,7 +7,7 @@
   </head>
   <body>
     <div id="root"></div>
-    <form name="client-intake" data-netlify="true" hidden>
+    <form name="client-intake" data-netlify="true" enctype="multipart/form-data" hidden>
       <input type="text" name="fullName" />
       <input type="email" name="email" />
       <input type="tel" name="phone" />
@@ -18,6 +18,8 @@
       <input type="text" name="parentRelationship" />
       <input type="text" name="parentPhone" />
       <input type="text" name="parentEmail" />
+      <input type="file" name="clientSignature" />
+      <input type="file" name="parentSignature" />
       <textarea name="medicalInfo"></textarea>
       <textarea name="acknowledgments"></textarea>
       <textarea name="signatures"></textarea>

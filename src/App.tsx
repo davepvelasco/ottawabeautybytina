@@ -26,6 +26,21 @@ const SECTIONS = {
   SIGNATURE: 'Review & Sign'
 };
 
+const dataURLtoFile = (dataurl: string, filename: string) => {
+  if (!dataurl || !dataurl.includes(',')) return null;
+  const arr = dataurl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  if (!mimeMatch) return null;
+  const mime = mimeMatch[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
+
 const SERVICES = [
   { id: 'lash_ext', label: 'Lash Extensions' },
   { id: 'lash_lift', label: 'Lash Lift & Tint' },
@@ -109,33 +124,37 @@ export default function App() {
     if (services.length === 0) return;
     setIsSubmitting(true);
     try {
-      const encode = (data: Record<string, string>) => {
-        return Object.keys(data)
-          .map(key => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
-          .join("&");
-      };
+      const formData = new FormData();
+      formData.append("form-name", "client-intake");
+      formData.append("fullName", clientInfo.fullName);
+      formData.append("email", clientInfo.email);
+      formData.append("phone", clientInfo.phone);
+      formData.append("dob", clientInfo.dob);
+      formData.append("services", services.join(', '));
+      formData.append("isMinor", isMinor.toString());
+      formData.append("parentFullName", isMinor ? parentInfo.fullName : '');
+      formData.append("parentRelationship", isMinor ? parentInfo.relationship : '');
+      formData.append("parentPhone", isMinor ? parentInfo.phone : '');
+      formData.append("parentEmail", isMinor ? parentInfo.email : '');
+      formData.append("medicalInfo", JSON.stringify(medical));
+      formData.append("acknowledgments", JSON.stringify(acknowledgments));
+      formData.append("signatures", JSON.stringify(signatures));
 
-      const formData = {
-        "form-name": "client-intake",
-        fullName: clientInfo.fullName,
-        email: clientInfo.email,
-        phone: clientInfo.phone,
-        dob: clientInfo.dob,
-        services: services.join(', '),
-        isMinor: isMinor.toString(),
-        parentFullName: isMinor ? parentInfo.fullName : '',
-        parentRelationship: isMinor ? parentInfo.relationship : '',
-        parentPhone: isMinor ? parentInfo.phone : '',
-        parentEmail: isMinor ? parentInfo.email : '',
-        medicalInfo: JSON.stringify(medical),
-        acknowledgments: JSON.stringify(acknowledgments),
-        signatures: JSON.stringify(signatures)
-      };
+      const clientSigFile = dataURLtoFile(signatures.client, 'client-signature.png');
+      if (clientSigFile) {
+        formData.append("clientSignature", clientSigFile);
+      }
+
+      if (isMinor && signatures.parent) {
+        const parentSigFile = dataURLtoFile(signatures.parent, 'parent-signature.png');
+        if (parentSigFile) {
+          formData.append("parentSignature", parentSigFile);
+        }
+      }
 
       const response = await fetch("/", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: encode(formData),
+        body: formData,
       });
 
       if (!response.ok) throw new Error('Submission failed');
