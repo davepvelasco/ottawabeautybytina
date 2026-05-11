@@ -126,19 +126,31 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append("form-name", "client-intake");
-      formData.append("fullName", clientInfo.fullName);
-      formData.append("email", clientInfo.email);
-      formData.append("phone", clientInfo.phone);
-      formData.append("dob", clientInfo.dob);
-      formData.append("services", services.join(', '));
-      formData.append("isMinor", isMinor.toString());
-      formData.append("parentFullName", isMinor ? parentInfo.fullName : '');
-      formData.append("parentRelationship", isMinor ? parentInfo.relationship : '');
-      formData.append("parentPhone", isMinor ? parentInfo.phone : '');
-      formData.append("parentEmail", isMinor ? parentInfo.email : '');
-      formData.append("medicalInfo", JSON.stringify(medical));
-      formData.append("acknowledgments", JSON.stringify(acknowledgments));
-      formData.append("signatures", JSON.stringify(signatures));
+
+      const appendIfPresent = (name: string, value: any) => {
+        if (value === undefined || value === null || value === '') return;
+        // For objects like medicalInfo or acknowledgments, check if they have keys
+        if (typeof value === 'object' && !(value instanceof File) && Object.keys(value).length === 0) return;
+        
+        formData.append(name, typeof value === 'object' && !(value instanceof File) ? JSON.stringify(value) : value.toString());
+      };
+
+      appendIfPresent("fullName", clientInfo.fullName);
+      appendIfPresent("email", clientInfo.email);
+      appendIfPresent("phone", clientInfo.phone);
+      appendIfPresent("dob", clientInfo.dob);
+      appendIfPresent("services", services.join(', '));
+      appendIfPresent("isMinor", isMinor ? "true" : ""); // If not minor, we can omit or send empty. User said no empty/null.
+      
+      if (isMinor) {
+        appendIfPresent("parentFullName", parentInfo.fullName);
+        appendIfPresent("parentRelationship", parentInfo.relationship);
+        appendIfPresent("parentPhone", parentInfo.phone);
+        appendIfPresent("parentEmail", parentInfo.email);
+      }
+
+      appendIfPresent("medicalInfo", medical);
+      appendIfPresent("acknowledgments", acknowledgments);
 
       const clientSigFile = dataURLtoFile(signatures.client, 'client-signature.png');
       if (clientSigFile) {
