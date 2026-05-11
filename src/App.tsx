@@ -48,6 +48,52 @@ const SERVICES = [
   { id: 'waxing', label: 'Waxing' }
 ];
 
+function getConsolidatedTerms(selectedServices: string[], isMinor: boolean) {
+  const isLashes = selectedServices.some(s => s === 'lash_ext' || s === 'lash_lift');
+  const isBrows = selectedServices.some(s => s === 'brow');
+  const isWaxing = selectedServices.some(s => s === 'waxing');
+
+  const names = selectedServices.map(id => SERVICES.find(s => s.id === id)?.label).filter(Boolean);
+  let serviceNames = "";
+  if (names.length === 1) serviceNames = names[0] as string;
+  else if (names.length === 2) serviceNames = `${names[0]} & ${names[1]}`;
+  else if (names.length > 2) serviceNames = `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+
+  const segments = ["redness", "irritation"];
+  if (isWaxing) segments.push("skin lifting", "minor injury");
+  if (isBrows) segments.push("dryness");
+  segments.push("itching", "swelling");
+  if (isBrows || isLashes) segments.push("eye discomfort or watering");
+  segments.push("allergic reactions or sensitivity");
+  if (isBrows || isLashes) segments.push("uneven results or shorter retention");
+  
+  let riskText = segments.join(", ");
+  if (isLashes) riskText += ", and potential damage to natural lashes";
+
+  const riskStatement = `I understand that the selected service(s) involve the use of adhesives, chemical solutions, and tools near the eyes and skin, and may include risks such as ${riskText} if proper aftercare is not followed.`;
+
+  const terms = [
+    `I understand I am receiving ${serviceNames || "the selected services"}.`,
+    `I understand results may vary depending on my skin type, hair condition, ${isLashes ? "natural lashes, " : ""}and aftercare.`,
+    riskStatement,
+    `I understand these risks are rare but possible.`,
+    `I understand that proper aftercare is required to maintain results and reduce risk of irritation.`,
+    `I agree to follow all instructions provided and understand Ottawa Beauty by Tina is not responsible for issues resulting from failure to follow instructions.`,
+    `I confirm that all information I have provided, including but not limited to medical conditions, allergies, sensitivities, eye conditions, and recent procedures, is accurate and complete.`,
+    `I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions.`,
+  ];
+
+  if (isWaxing) {
+    terms.push(`I understand the nature of intimate waxing and give my full consent for this service.`);
+  }
+
+  terms.push(`I voluntarily consent to ${isMinor ? "my child receiving" : "receive"} the selected service(s) from Ottawa Beauty by Tina.`);
+  
+  terms.push(`I release and hold harmless Ottawa Beauty by Tina, its owner, technicians, and staff from any and all liability, claims, demands, injuries, damages, or adverse reactions arising out of or in connection with the services provided ${isMinor ? "to my child" : "to me"}, except to the extent caused by gross negligence or willful misconduct.`);
+
+  return terms;
+}
+
 export default function App() {
   const [isStarted, setIsStarted] = useState(false);
   const [step, setStep] = useState(0);
@@ -72,7 +118,9 @@ export default function App() {
   });
 
   const [medical, setMedical] = useState<Record<string, any>>({});
-  const [acknowledgments, setAcknowledgments] = useState<Record<string, boolean>>({});
+  const [acknowledgments, setAcknowledgments] = useState<Record<string, boolean>>({
+    agreeToAll: false
+  });
   const [consents, setConsents] = useState({ photoConsent: true });
   const [signatures, setSignatures] = useState({ client: '', parent: '' });
 
@@ -137,48 +185,20 @@ export default function App() {
         formData.append(name, typeof value === 'object' && !(value instanceof File) ? JSON.stringify(value) : value.toString());
       };
 
-      const isLashes = services.some((s: string) => s === 'lash_ext' || s === 'lash_lift');
-      const isBrows = services.some((s: string) => s === 'brow');
-      const isWaxing = services.some((s: string) => s === 'waxing');
-
       const names = services.map((id: string) => SERVICES.find(s => s.id === id)?.label).filter(Boolean);
-      let serviceNames = "";
-      if (names.length === 1) serviceNames = names[0];
-      else if (names.length === 2) serviceNames = `${names[0]} & ${names[1]}`;
-      else if (names.length > 2) serviceNames = `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
-
-      const riskSegments = ["redness", "irritation"];
-      if (isWaxing) riskSegments.push("skin lifting", "minor injury");
-      if (isBrows) riskSegments.push("dryness");
-      riskSegments.push("itching", "swelling");
-      if (isBrows || isLashes) riskSegments.push("eye discomfort or watering");
-      riskSegments.push("allergic reactions or sensitivity");
-      if (isBrows || isLashes) riskSegments.push("uneven results or shorter retention");
-      let riskText = riskSegments.join(", ");
-      if (isLashes) riskText += ", and potential damage to natural lashes";
-      const riskStatement = `I understand that the selected service(s) involve the use of adhesives, chemical solutions, and tools near the eyes and skin, and may include risks such as ${riskText} if proper aftercare is not followed.`;
-
+      
       const medicalPhrases = Object.entries(medical)
         .filter(([key, value]) => value === true && MEDICAL_QUESTIONS[key as keyof typeof MEDICAL_QUESTIONS])
         .map(([key]) => `- ${MEDICAL_QUESTIONS[key as keyof typeof MEDICAL_QUESTIONS]}`);
       if (medical.notes) medicalPhrases.push(`\nAdditional Notes: ${medical.notes}`);
       
-      const ackPhrases: string[] = [];
-      if (acknowledgments.serviceAck1) ackPhrases.push(`I understand I am receiving ${serviceNames || "the selected services"}.`);
-      if (acknowledgments.serviceAck2) ackPhrases.push(`I understand results may vary depending on my skin type, hair condition, ${isLashes ? "natural lashes, " : ""}and aftercare.`);
-      if (acknowledgments.riskAck1) ackPhrases.push(riskStatement);
-      if (acknowledgments.riskAck2) ackPhrases.push(`I understand these risks are rare but possible.`);
-      if (acknowledgments.aftercareAck1) ackPhrases.push(`I understand that proper aftercare is required to maintain results and reduce risk of irritation.`);
-      if (acknowledgments.aftercareAck2) ackPhrases.push(`I agree to follow all instructions provided and understand Ottawa Beauty by Tina is not responsible for issues resulting from failure to follow instructions.`);
-      if (acknowledgments.disclosureAck1) ackPhrases.push(`I confirm that all information I have provided, including but not limited to medical conditions, allergies, sensitivities, eye conditions, and recent procedures, is accurate and complete.`);
-      if (acknowledgments.disclosureAck2) ackPhrases.push(`I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions.`);
-      if (isWaxing && acknowledgments.brazilianAck) ackPhrases.push(`I understand the nature of intimate waxing and give my full consent for this service.`);
-      if (acknowledgments.releaseLiability1) ackPhrases.push(`I voluntarily consent to ${isMinor ? "my child receiving" : "receive"} the selected service(s) from Ottawa Beauty by Tina.`);
-      if (acknowledgments.releaseLiability2) ackPhrases.push(`I release and hold harmless Ottawa Beauty by Tina, its owner, technicians, and staff from any and all liability, claims, demands, injuries, damages, or adverse reactions arising out of or in connection with the services provided, except to the extent caused by gross negligence or willful misconduct.`);
+      const ackPhrases = acknowledgments.agreeToAll 
+        ? getConsolidatedTerms(services, isMinor).map(term => `• ${term}`)
+        : [];
       
       const photoConsentTxt = consents.photoConsent 
-        ? `I consent to photos and videos ${isMinor ? "of my child" : ""} being taken and used for portfolio and marketing purposes, including social media, websites, and before-and-after promotional materials.`
-        : "I do NOT consent to photos and videos being taken.";
+        ? `• I consent to photos and videos ${isMinor ? "of my child" : ""} being taken and used for portfolio and marketing purposes, including social media, websites, and before-and-after promotional materials.`
+        : "• I do NOT consent to photos and videos being taken.";
       ackPhrases.push(photoConsentTxt);
 
       appendIfPresent("fullName", clientInfo.fullName);
@@ -467,14 +487,7 @@ function isStepValid(section: string, data: any) {
     );
   }
   if (section === SECTIONS.WAIVERS) {
-    const requiredTags = [
-      'serviceAck1', 'serviceAck2', 
-      'riskAck1', 'riskAck2', 
-      'aftercareAck1', 'aftercareAck2', 
-      'disclosureAck1', 'disclosureAck2', 
-      'releaseLiability1', 'releaseLiability2'
-    ];
-    return requiredTags.every(tag => data.acknowledgments[tag] === true);
+    return data.acknowledgments.agreeToAll === true;
   }
   return true; 
 }
@@ -802,178 +815,46 @@ function MedicalStep({ services, medical, setMedical, onKeyDown }: any) {
 }
 
 function WaiversStep({ state, isMinor, onKeyDown }: any) {
-  const services = state.services;
-  const isLashes = services.some((s: string) => s === 'lash_ext' || s === 'lash_lift');
-  const isBrows = services.some((s: string) => s === 'brow');
-  const isWaxing = services.some((s: string) => s === 'waxing');
-
-  const serviceNames = useMemo(() => {
-    const names = services.map((id: string) => SERVICES.find(s => s.id === id)?.label).filter(Boolean);
-    
-    if (names.length === 0) return "";
-    if (names.length === 1) return names[0];
-    if (names.length === 2) return `${names[0]} & ${names[1]}`;
-    return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
-  }, [services]);
-
-  const showNaturalLashesRisks = services.some((s: string) => s === 'lash_ext' || s === 'lash_lift');
-
-  const riskStatement = useMemo(() => {
-    const segments = ["redness", "irritation"];
-    if (isWaxing) segments.push("skin lifting", "minor injury");
-    if (isBrows) segments.push("dryness");
-    segments.push("itching", "swelling");
-    if (isBrows || isLashes) segments.push("eye discomfort or watering");
-    segments.push("allergic reactions or sensitivity");
-    if (isBrows || isLashes) segments.push("uneven results or shorter retention");
-    
-    let text = segments.join(", ");
-    if (isLashes) {
-      text += ", and potential damage to natural lashes";
-    }
-
-    return `I understand that the selected service(s) involve the use of adhesives, chemical solutions, and tools near the eyes and skin, and may include risks such as ${text} if proper aftercare is not followed.`;
-  }, [services, isWaxing, isBrows, isLashes]);
-
-  const handleToggle = (key: string, value: boolean) => {
-    state.setAcknowledgments({
-      ...state.acknowledgments,
-      [key]: value
-    });
-  };
+  const allTerms = useMemo(() => {
+    return getConsolidatedTerms(state.services, isMinor).map(term => `• ${term}`);
+  }, [state.services, isMinor]);
 
   return (
-    <div className="space-y-12">
-      <div className="space-y-6 md:space-y-8">
-        <div className="space-y-4">
-          <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-white/20">Please review and check all boxes to proceed:</p>
+    <div className="space-y-8">
+      <div className="p-6 md:p-8 bg-white/5 border border-white/10 rounded-sm space-y-6">
+        <div className="max-h-80 overflow-y-auto space-y-4 pr-4 custom-scrollbar">
+          <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Terms & Conditions</h5>
+          <div className="space-y-4 text-xs font-light text-[#8E8782] leading-relaxed">
+            {allTerms.map((term, i) => (
+              <p key={i}>{term}</p>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-8">
-          {/* Service Acknowledgment */}
-          <div className="space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Service Acknowledgement</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label={`I understand I am receiving ${serviceNames || "the selected services"}.`}
-                checked={state.acknowledgments.serviceAck1 || false}
-                onChange={(v: boolean) => handleToggle('serviceAck1', v)}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label={`I understand results may vary depending on my skin type, hair condition, ${showNaturalLashesRisks ? "natural lashes, " : ""}and aftercare.`}
-                checked={state.acknowledgments.serviceAck2 || false}
-                onChange={(v: boolean) => handleToggle('serviceAck2', v)}
-                onKeyDown={onKeyDown}
-              />
-            </div>
-          </div>
+      </div>
 
-          {/* Acknowledgement of Risk */}
-          <div className="space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Acknowledgement of Risk</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label={riskStatement}
-                checked={state.acknowledgments.riskAck1 || false}
-                onChange={(v: boolean) => handleToggle('riskAck1', v)}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label="I understand these risks are rare but possible."
-                checked={state.acknowledgments.riskAck2 || false}
-                onChange={(v: boolean) => handleToggle('riskAck2', v)}
-                onKeyDown={onKeyDown}
-              />
-            </div>
-          </div>
-
-          {/* Aftercare Responsibility */}
-          <div className="space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Aftercare Responsibility</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label="I understand that proper aftercare is required to maintain results and reduce risk of irritation."
-                checked={state.acknowledgments.aftercareAck1 || false}
-                onChange={(v: boolean) => handleToggle('aftercareAck1', v)}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label="I agree to follow all instructions provided and understand Ottawa Beauty by Tina is not responsible for issues resulting from failure to follow instructions."
-                checked={state.acknowledgments.aftercareAck2 || false}
-                onChange={(v: boolean) => handleToggle('aftercareAck2', v)}
-                onKeyDown={onKeyDown}
-              />
-            </div>
-          </div>
-
-          {/* Disclosure Confirmation */}
-          <div className="space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Disclosure Confirmation</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label="I confirm that all information I have provided, including but not limited to medical conditions, allergies, sensitivities, eye conditions, and recent procedures, is accurate and complete."
-                checked={state.acknowledgments.disclosureAck1 || false}
-                onChange={(v: boolean) => handleToggle('disclosureAck1', v)}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label="I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions."
-                checked={state.acknowledgments.disclosureAck2 || false}
-                onChange={(v: boolean) => handleToggle('disclosureAck2', v)}
-                onKeyDown={onKeyDown}
-              />
-            </div>
-          </div>
-
-          {/* Brazilian / Bikini Wax (Optional) */}
-          {isWaxing && (
-             <div className="space-y-4">
-                <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">For Brazilian / Bikini Wax (if applicable)</h5>
-                <Checkbox 
-                  label="I understand the nature of intimate waxing and give my full consent for this service."
-                  checked={state.acknowledgments.brazilianAck || false}
-                  onChange={(v: boolean) => handleToggle('brazilianAck', v)}
-                  onKeyDown={onKeyDown}
-                />
-             </div>
-          )}
-
-          {/* Consent & Release of Liability */}
-          <div className="space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Consent & Release of Liability</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label={`I voluntarily consent to ${isMinor ? "my child receiving" : "receive"} the selected service(s) from Ottawa Beauty by Tina.`}
-                checked={state.acknowledgments.releaseLiability1 || false}
-                onChange={(v: boolean) => handleToggle('releaseLiability1', v)}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label="I release and hold harmless Ottawa Beauty by Tina, its owner, technicians, and staff from any and all liability, claims, demands, injuries, damages, or adverse reactions arising out of or in connection with the services provided, except to the extent caused by gross negligence or willful misconduct."
-                checked={state.acknowledgments.releaseLiability2 || false}
-                onChange={(v: boolean) => handleToggle('releaseLiability2', v)}
-                onKeyDown={onKeyDown}
-              />
-            </div>
-          </div>
-
-          {/* Photo Consent */}
-          <div className="pt-6 border-t border-white/5 space-y-4">
-            <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Photo Consent</h5>
-            <div className="grid gap-3">
-              <Checkbox 
-                label={`I consent to photos and videos ${isMinor ? "of my child" : ""} being taken and used for portfolio and marketing purposes, including social media, websites, and before-and-after promotional materials.`} 
-                checked={state.consents.photoConsent}
-                onChange={(v: boolean) => state.setConsents({...state.consents, photoConsent: v})}
-                onKeyDown={onKeyDown}
-              />
-              <Checkbox 
-                label="I do NOT consent." 
-                checked={!state.consents.photoConsent}
-                onChange={(v: boolean) => state.setConsents({...state.consents, photoConsent: !v})}
-                onKeyDown={onKeyDown}
-              />
-            </div>
+      <div className="space-y-6">
+        <Checkbox 
+          label="I have read and agree to all of the terms and conditions above."
+          checked={state.acknowledgments.agreeToAll || false}
+          onChange={(v: boolean) => state.setAcknowledgments({ ...state.acknowledgments, agreeToAll: v })}
+          onKeyDown={onKeyDown}
+        />
+        
+        <div className="pt-6 border-t border-white/5 space-y-4">
+          <h5 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">Media Consent</h5>
+          <div className="grid gap-3">
+            <Checkbox 
+              label={`I consent to photos and videos ${isMinor ? "of my child" : ""} being taken and used for portfolio and marketing purposes.`} 
+              checked={state.consents.photoConsent}
+              onChange={(v: boolean) => state.setConsents({...state.consents, photoConsent: v})}
+              onKeyDown={onKeyDown}
+            />
+            <Checkbox 
+              label="I do NOT consent." 
+              checked={!state.consents.photoConsent}
+              onChange={(v: boolean) => state.setConsents({...state.consents, photoConsent: !v})}
+              onKeyDown={onKeyDown}
+            />
           </div>
         </div>
       </div>
