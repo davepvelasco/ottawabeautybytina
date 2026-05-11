@@ -73,14 +73,14 @@ function getConsolidatedTerms(selectedServices: string[], isMinor: boolean) {
   const riskStatement = `I understand that the selected service(s) involve the use of adhesives, chemical solutions, and tools near the eyes and skin, and may include risks such as ${riskText} if proper aftercare is not followed.`;
 
   const terms = [
-    `I understand I am receiving ${serviceNames || "the selected services"}.`,
-    `I understand results may vary depending on my skin type, hair condition, ${isLashes ? "natural lashes, " : ""}and aftercare.`,
+    `I understand ${isMinor ? "my child is" : "I am"} receiving ${serviceNames || "the selected services"}.`,
+    `I understand results may vary depending on ${isMinor ? "my child's" : "my"} skin type, hair condition, ${isLashes ? (isMinor ? "natural lashes, " : "natural lashes, ") : ""}and aftercare.`,
     riskStatement,
     `I understand these risks are rare but possible.`,
-    `I understand that proper aftercare is required to maintain results and reduce risk of irritation.`,
+    `I understand that proper aftercare is required to maintain results and reduce risk of irritation ${isMinor ? "for my child" : ""}.`,
     `I agree to follow all instructions provided and understand Ottawa Beauty by Tina is not responsible for issues resulting from failure to follow instructions.`,
     `I confirm that all information I have provided, including but not limited to medical conditions, allergies, sensitivities, eye conditions, and recent procedures, is accurate and complete.`,
-    `I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions.`,
+    `I understand that failure to disclose relevant information may increase the risk of irritation or adverse reactions ${isMinor ? "for my child" : ""}.`,
   ];
 
   if (isWaxing) {
