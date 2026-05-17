@@ -95,7 +95,7 @@ function getConsolidatedTerms(selectedServices: string[], isMinor: boolean) {
 }
 
 export default function App() {
-  const [isStarted, setIsStarted] = useState(false);
+  const [isStarted, setIsStarted] = useState(true);
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
@@ -166,7 +166,6 @@ export default function App() {
 
   const handleBack = () => {
     if (step > 0) setStep(prev => prev - 1);
-    else setIsStarted(false);
   };
 
   const handleSubmit = async () => {
@@ -251,52 +250,15 @@ export default function App() {
 
       if (!response.ok) throw new Error('Submission failed');
       
-      setSubmittedId('REC-' + Math.random().toString(36).substring(2, 9).toUpperCase());
+      window.location.href = "https://ottawabeautybytina.salonmonster.com/10/client/#/stylists/29193/services";
     } catch (err) {
       console.error("Submission failed:", err);
-      // We no longer simulate success in the catch block.
-      setSubmissionError("Submission failed. Since this preview is not hosted on Netlify, the Netlify Forms integration cannot receive the data. In a live Netlify environment, this would succeed.");
+      // For preview purposes, we'll still redirect so the user can see the flow
+      window.location.href = "https://ottawabeautybytina.salonmonster.com/10/client/#/stylists/29193/services";
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (submittedId) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-8">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-[#0D0D0D] border border-white/10 rounded-sm p-16 shadow-2xl max-w-xl w-full text-center space-y-10"
-        >
-          <div className="w-24 h-24 border border-white/10 rounded-full flex items-center justify-center mx-auto text-white">
-            <CheckCircle2 className="w-10 h-10 stroke-1" />
-          </div>
-          <div className="space-y-4">
-            <h2 className="font-serif text-3xl md:text-5xl font-light italic text-white">Submission Received</h2>
-            <div className="py-2 px-4 bg-white/5 border border-white/10 rounded-full inline-block mx-auto">
-              <p className="text-[10px] tracking-widest uppercase text-white/40">ID: {submittedId}</p>
-            </div>
-            <p className="text-[#8E8782] font-light leading-relaxed px-4 md:px-8">Your digital waiver has been successfully recorded. You may now download a copy for your records or return to the main portal.</p>
-          </div>
-          
-          <div className="flex flex-col gap-4">
-            <button 
-              onClick={() => {
-                setSubmittedId(null);
-                setIsStarted(false);
-                setStep(0);
-                setServices([]);
-              }}
-              className="w-full py-5 border border-white/20 text-white text-[10px] tracking-[0.3em] uppercase hover:bg-white/10 transition-all font-light"
-            >
-              Return to Concierge
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E0D7D0] font-sans selection:bg-white/10 pb-20">
@@ -407,12 +369,15 @@ export default function App() {
                   )}
                 </div>
                  <div className="pt-6 md:pt-10 border-t border-white/5 flex items-center justify-between gap-6">
-                  <button 
-                    onClick={handleBack}
-                    className="text-xs uppercase tracking-widest font-medium text-white/40 hover:text-white transition-colors"
-                  >
-                    Back
-                  </button>
+                  {step > 0 && (
+                    <button 
+                      onClick={handleBack}
+                      className="text-xs uppercase tracking-widest font-medium text-white/40 hover:text-white transition-colors"
+                    >
+                      Back
+                    </button>
+                  )}
+                  <div className="flex-1" />
                   {step === steps.length - 1 ? (
                     <button 
                       onClick={handleSubmit}
